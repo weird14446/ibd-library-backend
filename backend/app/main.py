@@ -1,15 +1,52 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.routers import books
+from app.database import init_db, SessionLocal
+from app.db_models import Book, BookCategory
+
+
+def seed_data():
+    """초기 샘플 데이터 삽입"""
+    db = SessionLocal()
+    try:
+        if db.query(Book).count() == 0:
+            sample_books = [
+                Book(title="클린 코드", author="로버트 C. 마틴", category=BookCategory.PROGRAMMING, available=True, cover="📘"),
+                Book(title="디자인 패턴", author="GoF", category=BookCategory.PROGRAMMING, available=True, cover="📗"),
+                Book(title="리팩터링", author="마틴 파울러", category=BookCategory.PROGRAMMING, available=False, cover="📙"),
+                Book(title="도메인 주도 설계", author="에릭 에반스", category=BookCategory.ARCHITECTURE, available=True, cover="📕"),
+                Book(title="실용주의 프로그래머", author="데이비드 토머스", category=BookCategory.PROGRAMMING, available=True, cover="📔"),
+                Book(title="소프트웨어 장인", author="산드로 만쿠소", category=BookCategory.CAREER, available=False, cover="📓"),
+            ]
+            db.add_all(sample_books)
+            db.commit()
+            print("✅ Sample data seeded successfully")
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """앱 시작/종료 시 실행되는 lifecycle 이벤트"""
+    # Startup
+    init_db()
+    seed_data()
+    print("🚀 Database initialized")
+    yield
+    # Shutdown
+    print("👋 Application shutdown")
+
 
 app = FastAPI(
     title="IBD Library API",
     description="도서관 관리 시스템 API - Vibe Coding으로 생성",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan
 )
 
 # CORS 설정
