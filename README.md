@@ -21,8 +21,6 @@
 ```
 ├── frontend/            # React + Vite
 ├── backend/             # Python FastAPI
-├── intents/             # 의도 정의서 (Intent Specifications)
-├── .agent/              # AI Agent 설정
 └── README.md
 ```
 
