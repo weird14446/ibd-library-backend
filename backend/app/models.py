@@ -151,3 +151,17 @@ class Review(ReviewBase):
 
 class ReviewWithUser(Review):
     user_name: Optional[str] = None
+
+
+# ==================== System Config Schemas ====================
+class SystemConfig(BaseModel):
+    key: str
+    value: str
+    description: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class SystemConfigUpdate(BaseModel):
+    value: str

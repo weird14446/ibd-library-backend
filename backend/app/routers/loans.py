@@ -4,13 +4,10 @@ from datetime import datetime, timedelta
 from typing import Optional
 
 from app.models import Loan as LoanSchema, LoanCreate, LoanResponse, LoanStatus
-from app.db_models import Loan as LoanModel, Book as BookModel, User as UserModel
+from app.db_models import Loan as LoanModel, Book as BookModel, User as UserModel, SystemConfig
 from app.database import get_db
 
 router = APIRouter()
-
-LOAN_PERIOD_DAYS = 14  # 대출 기간 2주
-MAX_EXTENSIONS = 1     # 최대 연장 횟수
 
 
 @router.get("/", response_model=list[LoanSchema])
@@ -62,13 +59,32 @@ async def borrow_book(loan_data: LoanCreate, db: Session = Depends(get_db)):
             message=f"'{book.title}'은(는) 현재 재고가 없습니다"
         )
     
+    # 대출 권수 제한 확인
+    limit_config = db.query(SystemConfig).filter(SystemConfig.key == "max_loan_limit").first()
+    max_limit = int(limit_config.value) if limit_config else 3
+    
+    current_loans = db.query(LoanModel).filter(
+        LoanModel.user_id == loan_data.user_id,
+        LoanModel.status == LoanStatus.BORROWED
+    ).count()
+    
+    if current_loans >= max_limit:
+        return LoanResponse(
+            success=False,
+            message=f"대출 가능 권수({max_limit}권)를 초과했습니다"
+        )
+    
+    # 대출 기간 설정 조회
+    period_config = db.query(SystemConfig).filter(SystemConfig.key == "loan_period_days").first()
+    period_days = int(period_config.value) if period_config else 14
+    
     # 대출 처리
     now = datetime.now()
     new_loan = LoanModel(
         user_id=loan_data.user_id,
         book_id=loan_data.book_id,
         loan_date=now,
-        due_date=now + timedelta(days=LOAN_PERIOD_DAYS),
+        due_date=now + timedelta(days=period_days),
         status=LoanStatus.BORROWED
     )
     
@@ -130,14 +146,21 @@ async def extend_loan(loan_id: int, db: Session = Depends(get_db)):
             message="대출 중인 도서만 연장할 수 있습니다"
         )
     
-    if loan.extension_count >= MAX_EXTENSIONS:
+    # 최대 연장 횟수 설정 조회
+    ext_config = db.query(SystemConfig).filter(SystemConfig.key == "max_extension_count").first()
+    max_extensions = int(ext_config.value) if ext_config else 1
+    
+    if loan.extension_count >= max_extensions:
         return LoanResponse(
             success=False,
-            message="연장은 1회만 가능합니다"
+            message=f"연장은 최대 {max_extensions}회까지 가능합니다"
         )
     
-    # 연장 처리
-    loan.due_date = loan.due_date + timedelta(days=LOAN_PERIOD_DAYS)
+    # 연장 처리 - 연장 기간 설정 조회
+    ext_period_config = db.query(SystemConfig).filter(SystemConfig.key == "extension_period_days").first()
+    extension_days = int(ext_period_config.value) if ext_period_config else 7
+    
+    loan.due_date = loan.due_date + timedelta(days=extension_days)
     loan.extension_count += 1
     
     db.commit()

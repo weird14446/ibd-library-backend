@@ -5,15 +5,27 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
-from app.routers import books, users, loans, reviews
+from app.routers import books, users, loans, reviews, admin, ai
 from app.database import init_db, SessionLocal
-from app.db_models import Book, User, UserRole
+from app.db_models import Book, User, UserRole, SystemConfig
 
 
 def seed_data():
     """초기 샘플 데이터 삽입"""
     db = SessionLocal()
     try:
+        # 시스템 설정 초기화
+        if db.query(SystemConfig).count() == 0:
+            configs = [
+                SystemConfig(key="loan_period_days", value="14", description="대출 기간 (일)"),
+                SystemConfig(key="max_loan_limit", value="3", description="인당 최대 대출 권수"),
+                SystemConfig(key="max_extension_count", value="1", description="최대 연장 횟수"),
+                SystemConfig(key="extension_period_days", value="7", description="연장 시 추가 기간 (일)")
+            ]
+            db.add_all(configs)
+            db.commit()
+            print("✅ Default config seeded")
+            
         # 관리자 사용자 생성
         if db.query(User).count() == 0:
             import hashlib
@@ -82,6 +94,8 @@ app.include_router(books.router, prefix="/api/books", tags=["도서"])
 app.include_router(users.router, prefix="/api/users", tags=["회원"])
 app.include_router(loans.router, prefix="/api/loans", tags=["대출"])
 app.include_router(reviews.router, prefix="/api/reviews", tags=["리뷰"])
+app.include_router(admin.router, prefix="/api/admin", tags=["관리자"])
+app.include_router(ai.router, prefix="/api/ai", tags=["AI"])
 
 # 정적 파일 경로
 STATIC_DIR = Path(__file__).parent.parent / "static"

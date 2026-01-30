@@ -105,3 +105,15 @@ class Review(Base):
     
     def __repr__(self):
         return f"<Review(review_id={self.review_id}, rating={self.rating})>"
+
+
+# System Config 테이블 (싱글톤 패턴처럼 키-값 저장)
+class SystemConfig(Base):
+    __tablename__ = "system_config"
+
+    key = Column(String(50), primary_key=True, comment="설정 키")
+    value = Column(String(255), nullable=False, comment="설정 값")
+    description = Column(String(255), nullable=True, comment="설정 설명")
+
+    def __repr__(self):
+        return f"<SystemConfig(key='{self.key}', value='{self.value}')>"

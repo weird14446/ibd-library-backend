@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Query, Depends
+from fastapi import APIRouter, HTTPException, Query, Depends, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 import hashlib
@@ -13,6 +13,18 @@ router = APIRouter()
 def hash_password(password: str) -> str:
     """간단한 비밀번호 해싱 (실제로는 bcrypt 사용 권장)"""
     return hashlib.sha256(password.encode()).hexdigest()
+
+
+async def get_current_user(x_user_id: Optional[str] = Header(None), db: Session = Depends(get_db)):
+    """현재 로그인한 사용자 가져오기 (헤더 기반 임시 인증)"""
+    if not x_user_id:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    
+    user = db.query(UserModel).filter(UserModel.user_id == int(x_user_id)).first()
+    if not user:
+        raise HTTPException(status_code=401, detail="유효하지 않은 사용자입니다")
+    
+    return user
 
 
 @router.get("/", response_model=list[UserSchema])
