@@ -6,14 +6,6 @@
 
 ---
 
-## 🎬 Demo
-
-<video src="Screen%20Recording%202026-01-30%20at%208.01.20%20PM.mov" controls width="100%"></video>
-
-> 위 비디오가 표시되지 않으면 [데모 영상 다운로드](./Screen%20Recording%202026-01-30%20at%208.01.20%20PM.mov)
-
----
-
 ## 🛠 Tech Stack
 
 | 영역 | 기술 |
