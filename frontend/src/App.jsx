@@ -1467,7 +1467,7 @@ function BookDetailModal({ isOpen, onClose, book, user, onBorrow, onEdit, onDele
 }
 
 // ==================== Chatbot Component ====================
-function Chatbot() {
+function Chatbot({ user }) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState([
     { role: 'assistant', content: '안녕하세요! IBD Library AI 사서입니다. 🤖\n무엇을 도와드릴까요?' }
@@ -1494,10 +1494,17 @@ function Chatbot() {
     setLoading(true)
 
     try {
+      // Debug: 전송되는 user_id 확인
+      console.log('🔍 [Chatbot] user object:', user)
+      console.log('🔍 [Chatbot] user_id being sent:', user?.user_id)
+
       const res = await fetch(`${API_URL}/ai/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
+        body: JSON.stringify({
+          message: userMessage,
+          user_id: user?.user_id || null
+        })
       })
 
       if (res.ok) {
@@ -1708,7 +1715,7 @@ function App() {
         user={user}
       />
 
-      <Chatbot />
+      <Chatbot user={user} />
     </div>
   )
 }
