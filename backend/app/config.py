@@ -1,8 +1,19 @@
-from pydantic_settings import BaseSettings
+from pathlib import Path
+from urllib.parse import quote_plus
+from pydantic_settings import BaseSettings, SettingsConfigDict
 from functools import lru_cache
+
+# .env 파일 경로
+ENV_FILE = Path(__file__).parent.parent / ".env"
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=str(ENV_FILE),
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+    
     # Database
     database_host: str = "localhost"
     database_port: int = 3306
@@ -17,11 +28,9 @@ class Settings(BaseSettings):
     
     @property
     def database_url(self) -> str:
-        return f"mysql+pymysql://{self.database_user}:{self.database_password}@{self.database_host}:{self.database_port}/{self.database_name}"
-    
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
+        # 특수문자 URL 인코딩
+        encoded_password = quote_plus(self.database_password)
+        return f"mysql+pymysql://{self.database_user}:{encoded_password}@{self.database_host}:{self.database_port}/{self.database_name}"
 
 
 @lru_cache()
